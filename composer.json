@@ -1,5 +1,5 @@
 {
-    "name": "webbingbrasil/filament-2fa",
+    "name": "cloudmazing/filament-2fa",
     "description": "A 2FA plugin for filament.",
     "keywords": [
         "laravel",
@@ -19,7 +19,7 @@
         "php": "^8.0",
         "ext-json": "*",
         "spatie/laravel-package-tools": "^1.9.2",
-        "filament/filament": "^2.10.40",
+        "filament/filament": "^3.0-stable",
         "bacon/bacon-qr-code": "^2.0",
         "pragmarx/google2fa": "^7.0|^8.0"
     },

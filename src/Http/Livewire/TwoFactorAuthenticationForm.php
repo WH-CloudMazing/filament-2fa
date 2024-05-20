@@ -4,14 +4,12 @@ namespace Webbingbrasil\FilamentTwoFactor\Http\Livewire;
 
 use Filament\Facades\Filament;
 use Filament\Forms;
-use Filament\Pages;
-use Filament\Pages\Actions\ButtonAction;
 use Illuminate\Support\Collection;
 use Livewire\Component;
 use Webbingbrasil\FilamentTwoFactor\ConfirmsPasswords;
 use Webbingbrasil\FilamentTwoFactor\FilamentTwoFactor;
 
-class TwoFactorAuthenticationForm extends Component  implements Forms\Contracts\HasForms
+class TwoFactorAuthenticationForm extends Component implements Forms\Contracts\HasForms
 {
     use Forms\Concerns\InteractsWithForms;
     use ConfirmsPasswords;
