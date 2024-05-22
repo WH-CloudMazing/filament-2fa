@@ -2,15 +2,19 @@
 
 namespace Webbingbrasil\FilamentTwoFactor\Http\Livewire;
 
+use Closure;
+use Filament\Actions;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Webbingbrasil\FilamentTwoFactor\ConfirmsPasswords;
 use Webbingbrasil\FilamentTwoFactor\FilamentTwoFactor;
 
-class TwoFactorAuthenticationForm extends Component implements Forms\Contracts\HasForms
+class TwoFactorAuthenticationForm extends Component implements Forms\Contracts\HasForms, Actions\Contracts\HasActions
 {
+    use Actions\Concerns\InteractsWithActions;
     use Forms\Concerns\InteractsWithForms;
     use ConfirmsPasswords;
 
@@ -49,92 +53,139 @@ class TwoFactorAuthenticationForm extends Component implements Forms\Contracts\H
         ];
     }
 
+    protected function passwordConfirmableAction(string $name, Closure $callback): Actions\Action
+    {
+        $action = Actions\Action::make($name)->button();
+
+        if (! $this->passwordIsConfirmed()) {
+            $callback = function () use ($callback) {
+                session(['auth.password_confirmed_at' => time()]);
+
+                $callback();
+            };
+
+            $action->requiresConfirmation(! $this->passwordIsConfirmed())
+                ->modalHeading(__('filament-2fa::two-factor.message.confirm_password'))
+                ->modalDescription(__('filament-2fa::two-factor.message.confirm_password_instructions'))
+                ->modalSubmitActionLabel(__('filament-2fa::two-factor.button.confirm'))
+                ->form([
+                    Forms\Components\TextInput::make('password')
+                        ->label(__('filament-2fa::two-factor.field.password'))
+                        ->required()
+                        ->password()
+                        ->rule(function () {
+                            return function ($attribute, $value, $fail) {
+                                $guard = Filament::auth();
+
+                                if (! $guard->validate([
+                                    'email' => $guard->user()->email,
+                                    'password' => $value,
+                                ])) {
+                                    $fail(__('filament-2fa::two-factor.message.password_not_match'));
+                                }
+                            };
+                        })
+                ]);
+        }
+
+        return $action->action(fn () => $callback());
+    }
+
     /**
      * Enable two factor authentication for the user.
-     *
-     * @return void
      */
-    public function enableTwoFactorAuthentication()
+    public function enableTwoFactorAuthentication(): Actions\Action
     {
-        $this->ensurePasswordIsConfirmed();
+        return $this->passwordConfirmableAction('enableTwoFactorAuthentication', function () {
+            $this->ensurePasswordIsConfirmed();
 
-        $this->user->forceFill([
-            'two_factor_secret' => encrypt($this->twoFactor->generateSecretKey()),
-            'two_factor_recovery_codes' => encrypt(json_encode(Collection::times(8, function () {
-                return $this->twoFactor->generateRecoveryCode();
-            })->all())),
-        ])->save();
+            $this->user->forceFill([
+                'two_factor_secret' => encrypt($this->twoFactor->generateSecretKey()),
+                'two_factor_recovery_codes' => encrypt(json_encode(Collection::times(8, function () {
+                    return $this->twoFactor->generateRecoveryCode();
+                })->all())),
+            ])->save();
+        })
+            ->label(__('filament-2fa::two-factor.button.enable'));
     }
 
     /**
      * Confirm two factor authentication for the user.
-     *
-     * @return void
      */
-    public function confirmTwoFactorAuthentication()
+    public function confirmTwoFactorAuthentication(): Actions\Action
     {
-        $this->ensurePasswordIsConfirmed();
+        return $this->passwordConfirmableAction('confirmTwoFactorAuthentication', function () {
+            $this->ensurePasswordIsConfirmed();
 
-        if (empty($this->user->two_factor_secret) ||
-            empty($this->code) ||
-            ! $this->twoFactor->verify(decrypt($this->user->two_factor_secret), $this->code)) {
-            $this->addError('code', __('filament-2fa::two-factor.message.invalid_code'));
+            if (empty($this->user->two_factor_secret) ||
+                empty($this->code) ||
+                ! $this->twoFactor->verify(decrypt($this->user->two_factor_secret), $this->code)) {
+                $this->addError('code', __('filament-2fa::two-factor.message.invalid_code'));
 
-            return;
-        }
+                return;
+            }
 
-        $this->user->forceFill([
-            'two_factor_confirmed_at' => now(),
-        ])->save();
+            $this->user->forceFill([
+                'two_factor_confirmed_at' => now(),
+            ])->save();
 
-        $this->showingRecoveryCodes = true;
+            $this->showingRecoveryCodes = true;
+        })
+            ->color('primary')
+            ->label(__('filament-2fa::two-factor.button.confirm'));
     }
 
     /**
      * Display the user's recovery codes.
-     *
-     * @return void
      */
-    public function showRecoveryCodes()
+    public function showRecoveryCodes(): Actions\Action
     {
-        $this->ensurePasswordIsConfirmed();
-        $this->showingRecoveryCodes = true;
+        return $this->passwordConfirmableAction('showRecoveryCodes', function () {
+            $this->ensurePasswordIsConfirmed();
+            $this->showingRecoveryCodes = true;
+        })
+            ->label(__('filament-2fa::two-factor.button.show_recovery_codes'));
     }
 
     /**
      * Generate new recovery codes for the user.
-     *
-     * @return void
      */
-    public function regenerateRecoveryCodes()
+    public function regenerateRecoveryCodes(): Actions\Action
     {
-        $this->ensurePasswordIsConfirmed();
+        return $this->passwordConfirmableAction('regenerateRecoveryCodes', function () {
+            $this->ensurePasswordIsConfirmed();
 
-        $this->user->forceFill([
-            'two_factor_recovery_codes' => encrypt(json_encode(Collection::times(8, function () {
-                return $this->twoFactor->generateRecoveryCode();
-            })->all())),
-        ])->save();
+            $this->user->forceFill([
+                'two_factor_recovery_codes' => encrypt(json_encode(Collection::times(8, function () {
+                    return $this->twoFactor->generateRecoveryCode();
+                })->all())),
+            ])->save();
 
-        $this->showingRecoveryCodes = true;
+            $this->showingRecoveryCodes = true;
+        })
+            ->label(__('filament-2fa::two-factor.button.regenerate_recovery_code'));
     }
 
     /**
      * Disable two factor authentication for the user.
-     *
-     * @return void
      */
-    public function disableTwoFactorAuthentication()
+    public function disableTwoFactorAuthentication(): Actions\Action
     {
-        $this->ensurePasswordIsConfirmed();
+        $twoFactorEnabled = $this->user->two_factor_secret;
 
-        $this->user->forceFill([
-            'two_factor_secret' => null,
-            'two_factor_recovery_codes' => null,
-            'two_factor_confirmed_at' => null,
-        ])->save();
+        return $this->passwordConfirmableAction('disableTwoFactorAuthentication', function () {
+            $this->ensurePasswordIsConfirmed();
 
-        $this->showingRecoveryCodes = false;
+            $this->user->forceFill([
+                'two_factor_secret' => null,
+                'two_factor_recovery_codes' => null,
+                'two_factor_confirmed_at' => null,
+            ])->save();
+
+            $this->showingRecoveryCodes = false;
+        })
+            ->color('danger')
+            ->label($twoFactorEnabled ? __('filament-2fa::two-factor.button.disable') : __('filament-2fa::two-factor.button.cancel'));
     }
 
     /**

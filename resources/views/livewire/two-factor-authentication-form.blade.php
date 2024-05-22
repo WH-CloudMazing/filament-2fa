@@ -57,46 +57,20 @@
 
     <div class="mt-2">
         @if (! $this->enabled)
-            <x-filament-2fa::confirms-password wire:then="enableTwoFactorAuthentication">
-                <x-filament::button type="button" wire:loading.attr="disabled">
-                    {{ __('filament-2fa::two-factor.button.enable') }}
-                </x-filament::button>
-            </x-filament-2fa::confirms-password>
+            {{ $this->enableTwoFactorAuthentication }}
         @else
             @if ($showingRecoveryCodes)
-                <x-filament-2fa::confirms-password wire:then="regenerateRecoveryCodes">
-                    <x-filament::button type="button" color="secondary" class="mr-3">
-                        {{ __('filament-2fa::two-factor.button.regenerate_recovery_code') }}
-                    </x-filament::button>
-                </x-filament-2fa::confirms-password>
+                {{ $this->regenerateRecoveryCodes }}
             @elseif (!$this->confirmed)
-                <x-filament-2fa::confirms-password wire:then="confirmTwoFactorAuthentication">
-                    <x-filament::button type="button" class="mr-3" wire:loading.attr="disabled">
-                        {{ __('filament-2fa::two-factor.button.confirm') }}
-                    </x-filament::button>
-                </x-filament-2fa::confirms-password>
+                {{ $this->confirmTwoFactorAuthentication }}
             @else
-                <x-filament-2fa::confirms-password wire:then="showRecoveryCodes">
-                    <x-filament::button type="button" color="secondary" class="mr-3">
-                        {{ __('filament-2fa::two-factor.button.show_recovery_codes') }}
-                    </x-filament::button>
-                </x-filament-2fa::confirms-password>
+                {{ $this->showRecoveryCodes }}
             @endif
 
-            @if (!$this->confirmed)
-                <x-filament-2fa::confirms-password wire:then="disableTwoFactorAuthentication">
-                    <x-filament::button type="button" color="secondary" wire:loading.attr="disabled">
-                        {{ __('filament-2fa::two-factor.button.cancel') }}
-                    </x-filament::button>
-                </x-filament-2fa::confirms-password>
-            @else
-                <x-filament-2fa::confirms-password wire:then="disableTwoFactorAuthentication">
-                    <x-filament::button type="button" color="danger" wire:loading.attr="disabled">
-                        {{ __('filament-2fa::two-factor.button.disable') }}
-                    </x-filament::button>
-                </x-filament-2fa::confirms-password>
-            @endif
+            {{ $this->disableTwoFactorAuthentication }}
 
         @endif
     </div>
+
+    <x-filament-actions::modals />
 </div>

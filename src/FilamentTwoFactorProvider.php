@@ -21,14 +21,12 @@ class FilamentTwoFactorProvider extends PackageServiceProvider
             ->hasTranslations()
             ->hasRoute('web')
             ->hasMigration('add_two_factor_columns_to_users_table');
-
-        Livewire::component(Auth\Login::getName(), Auth\Login::class);
-        Livewire::component(Auth\TwoFactorChallenge::getName(), Auth\TwoFactorChallenge::class);
-        Livewire::component('filament-two-factor-form', TwoFactorAuthenticationForm::class);
     }
 
     public function packageBooted(): void
     {
-        //
+//        Livewire::component(Auth\Login::getName(), Auth\Login::class);
+//        Livewire::component(Auth\TwoFactorChallenge::getName(), Auth\TwoFactorChallenge::class);
+        Livewire::component('filament-two-factor-form', TwoFactorAuthenticationForm::class);
     }
 }
